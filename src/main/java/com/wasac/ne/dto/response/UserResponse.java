@@ -14,11 +14,13 @@ public class UserResponse {
 
     private Long id;
     private String fullNames;
+    private String nationalId;
     private String email;
     private String phoneNumber;
     private Status status;
     private Set<UserRole> roles;
     private boolean emailVerified;
+    private boolean mustChangePassword;
     private Long customerId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

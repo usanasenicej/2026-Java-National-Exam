@@ -3,6 +3,9 @@ package com.wasac.ne.controller;
 import com.wasac.ne.dto.request.CreatePenaltyConfigRequest;
 import com.wasac.ne.dto.request.CreateServiceChargeRequest;
 import com.wasac.ne.dto.request.CreateTaxConfigRequest;
+import com.wasac.ne.dto.request.UpdatePenaltyConfigRequest;
+import com.wasac.ne.dto.request.UpdateServiceChargeRequest;
+import com.wasac.ne.dto.request.UpdateTaxConfigRequest;
 import com.wasac.ne.dto.response.*;
 import com.wasac.ne.enums.MeterType;
 import com.wasac.ne.service.ConfigService;
@@ -26,9 +29,11 @@ public class ConfigController {
 
     private final ConfigService configService;
 
+    // ── Service Charges ────────────────────────────────────────────────────
+
     @PostMapping("/service-charges")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create service charge", description = "Access: ROLE_ADMIN")
+    @Operation(summary = "Create service charge", description = "Access: ROLE_ADMIN. Auto-increments version.")
     public ResponseEntity<ApiResponse<ServiceChargeResponse>> createServiceCharge(
             @Valid @RequestBody CreateServiceChargeRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -46,6 +51,17 @@ public class ConfigController {
                 configService.getServiceCharges(meterType, PageRequest.of(page, size))));
     }
 
+    @PutMapping("/service-charges/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update service charge",
+        description = "Access: ROLE_ADMIN. Updates name, amount, effectiveTo, or status. Only provided fields are changed.")
+    public ResponseEntity<ApiResponse<ServiceChargeResponse>> updateServiceCharge(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateServiceChargeRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Service charge updated",
+                configService.updateServiceCharge(id, request)));
+    }
+
     @DeleteMapping("/service-charges/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete service charge", description = "Access: ROLE_ADMIN")
@@ -54,10 +70,13 @@ public class ConfigController {
         return ResponseEntity.ok(ApiResponse.success("Service charge deleted"));
     }
 
+    // ── Tax Configs ────────────────────────────────────────────────────────
+
     @PostMapping("/taxes")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create tax config", description = "Access: ROLE_ADMIN")
-    public ResponseEntity<ApiResponse<TaxConfigResponse>> createTax(@Valid @RequestBody CreateTaxConfigRequest request) {
+    @Operation(summary = "Create tax config", description = "Access: ROLE_ADMIN. Auto-increments version.")
+    public ResponseEntity<ApiResponse<TaxConfigResponse>> createTax(
+            @Valid @RequestBody CreateTaxConfigRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Tax config created", configService.createTax(request)));
     }
@@ -72,6 +91,16 @@ public class ConfigController {
                 configService.getTaxes(PageRequest.of(page, size))));
     }
 
+    @PutMapping("/taxes/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update tax config",
+        description = "Access: ROLE_ADMIN. Updates name, percentage (0-100), effectiveTo, or status. Only provided fields are changed.")
+    public ResponseEntity<ApiResponse<TaxConfigResponse>> updateTax(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateTaxConfigRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Tax config updated", configService.updateTax(id, request)));
+    }
+
     @DeleteMapping("/taxes/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete tax config", description = "Access: ROLE_ADMIN")
@@ -80,9 +109,11 @@ public class ConfigController {
         return ResponseEntity.ok(ApiResponse.success("Tax config deleted"));
     }
 
+    // ── Penalty Configs ────────────────────────────────────────────────────
+
     @PostMapping("/penalties")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create penalty config", description = "Access: ROLE_ADMIN")
+    @Operation(summary = "Create penalty config", description = "Access: ROLE_ADMIN. Auto-increments version.")
     public ResponseEntity<ApiResponse<PenaltyConfigResponse>> createPenalty(
             @Valid @RequestBody CreatePenaltyConfigRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -97,6 +128,17 @@ public class ConfigController {
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ApiResponse.success("Penalty configs retrieved",
                 configService.getPenalties(PageRequest.of(page, size))));
+    }
+
+    @PutMapping("/penalties/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update penalty config",
+        description = "Access: ROLE_ADMIN. Updates name, percentage, gracePeriodDays, effectiveTo, or status. Only provided fields are changed.")
+    public ResponseEntity<ApiResponse<PenaltyConfigResponse>> updatePenalty(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePenaltyConfigRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Penalty config updated",
+                configService.updatePenalty(id, request)));
     }
 
     @DeleteMapping("/penalties/{id}")

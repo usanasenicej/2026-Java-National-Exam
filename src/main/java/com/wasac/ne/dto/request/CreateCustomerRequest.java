@@ -4,9 +4,12 @@ import com.wasac.ne.enums.Status;
 import com.wasac.ne.validation.ValidEmail;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 @Schema(description = "Create customer")
@@ -23,12 +26,14 @@ public class CreateCustomerRequest {
     private String email;
 
     @NotBlank
-    @Pattern(regexp = "^\\+?250[0-9]{9}$|^0[0-9]{9}$")
+    @Pattern(regexp = "^(\\+?2507[2389]|07[2389])[0-9]{7}$", message = "Phone must be a valid Rwanda number (e.g. +250788123456 or 0788123456)")
     private String phoneNumber;
+
+    private LocalDate dateOfBirth;
 
     @NotBlank @Size(min = 5, max = 255)
     private String address;
 
-    @NotBlank
+    @NotNull
     private Status status;
 }

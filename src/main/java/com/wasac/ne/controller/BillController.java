@@ -83,4 +83,18 @@ public class BillController {
         billService.delete(id);
         return ResponseEntity.ok(ApiResponse.success("Bill deleted"));
     }
+
+    @PostMapping("/process-overdue")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
+    @Operation(
+        summary = "Process overdue bills",
+        description = "Access: ROLE_ADMIN, ROLE_FINANCE. " +
+            "Marks APPROVED bills past their due date as OVERDUE and applies late payment penalties. " +
+            "Bills overdue for more than 90 days trigger automatic meter disconnection."
+    )
+    public ResponseEntity<ApiResponse<String>> processOverdue() {
+        int count = billService.processOverdueBills();
+        return ResponseEntity.ok(ApiResponse.success(
+                "Overdue processing complete. Bills updated: " + count));
+    }
 }

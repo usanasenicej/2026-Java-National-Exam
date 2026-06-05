@@ -30,6 +30,12 @@ public class AuditLog {
     private String performedBy;
 
     @Column(length = 2000)
+    private String oldValue;
+
+    @Column(length = 2000)
+    private String newValue;
+
+    @Column(length = 2000)
     private String details;
 
     @Column(nullable = false)

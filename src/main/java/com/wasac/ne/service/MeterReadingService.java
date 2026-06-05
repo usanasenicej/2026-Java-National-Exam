@@ -30,24 +30,38 @@ public class MeterReadingService {
     public MeterReadingResponse create(CreateMeterReadingRequest request) {
         Meter meter = meterService.findMeter(request.getMeterId());
 
+        // 1. Meter must be active — not inactive, suspended, or disconnected
         if (meter.getStatus() != Status.ACTIVE) {
-            throw new BusinessException("Cannot capture reading for inactive meter: " + meter.getMeterNumber());
+            throw new BusinessException("Cannot capture reading for meter '" + meter.getMeterNumber()
+                    + "': meter status is " + meter.getStatus() + " (must be ACTIVE)");
         }
 
+        // 2. Current reading must be strictly greater than previous reading
         if (request.getCurrentReading().compareTo(request.getPreviousReading()) <= 0) {
             throw new BusinessException("Current reading (" + request.getCurrentReading() +
                     ") must be greater than previous reading (" + request.getPreviousReading() + ")");
         }
 
-        int month = request.getReadingDate().getMonthValue();
-        int year = request.getReadingDate().getYear();
-
-        if (meterReadingRepository.existsByMeterIdAndReadingMonthAndReadingYear(meter.getId(), month, year)) {
-            throw new BusinessException("A reading for meter '" + meter.getMeterNumber() +
-                    "' already exists for " + month + "/" + year);
+        // 3. Consumption (computed) must not be negative
+        BigDecimal consumption = request.getCurrentReading().subtract(request.getPreviousReading());
+        if (consumption.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException("Consumption cannot be negative. Got: " + consumption);
         }
 
-        BigDecimal consumption = request.getCurrentReading().subtract(request.getPreviousReading());
+        // 4. Reading date must not be in the future (already covered by @PastOrPresent in DTO,
+        //    but we add a service-level guard for programmatic callers)
+        if (request.getReadingDate().isAfter(java.time.LocalDate.now())) {
+            throw new BusinessException("Reading date cannot be in the future: " + request.getReadingDate());
+        }
+
+        int month = request.getReadingDate().getMonthValue();
+        int year  = request.getReadingDate().getYear();
+
+        // 5. Enforce one reading per meter per month/year
+        if (meterReadingRepository.existsByMeterIdAndReadingMonthAndReadingYear(meter.getId(), month, year)) {
+            throw new BusinessException("A reading for meter '" + meter.getMeterNumber() +
+                    "' already exists for " + month + "/" + year + ". Only one reading per meter per month is allowed.");
+        }
 
         MeterReading reading = MeterReading.builder()
                 .meter(meter)
@@ -61,7 +75,11 @@ public class MeterReadingService {
 
         reading = meterReadingRepository.save(reading);
         auditService.log("MeterReading", reading.getId(), "CREATE",
-                "Reading captured for meter " + meter.getMeterNumber());
+                null,
+                "meterId=" + meter.getId() + ",meter=" + meter.getMeterNumber()
+                        + ",consumption=" + consumption + ",period=" + month + "/" + year,
+                "Reading captured for meter " + meter.getMeterNumber()
+                        + " (" + month + "/" + year + "): " + consumption + " units");
         return EntityMapper.toMeterReadingResponse(reading);
     }
 
@@ -86,8 +104,11 @@ public class MeterReadingService {
     @Transactional
     public void delete(Long id) {
         MeterReading reading = findReading(id);
+        auditService.log("MeterReading", id, "DELETE",
+                "meterId=" + reading.getMeter().getId() + ",period="
+                        + reading.getReadingMonth() + "/" + reading.getReadingYear(), null,
+                "Meter reading deleted for meter " + reading.getMeter().getMeterNumber());
         meterReadingRepository.delete(reading);
-        auditService.log("MeterReading", id, "DELETE", "Meter reading deleted");
     }
 
     public MeterReading findReading(Long id) {

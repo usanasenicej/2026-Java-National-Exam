@@ -27,8 +27,10 @@ public class MeterReadingController {
     private final MeterReadingService meterReadingService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @Operation(summary = "Capture meter reading", description = "Access: ROLE_OPERATOR, ROLE_ADMIN. One reading per meter per month.")
+    @PreAuthorize("hasRole('OPERATOR')")
+    @Operation(summary = "Capture meter reading",
+        description = "Access: ROLE_OPERATOR only. Records monthly consumption for a given meter. " +
+            "Business rules: meter must be ACTIVE, current reading > previous reading, one reading per meter per month.")
     public ResponseEntity<ApiResponse<MeterReadingResponse>> create(@Valid @RequestBody CreateMeterReadingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Meter reading captured", meterReadingService.create(request)));

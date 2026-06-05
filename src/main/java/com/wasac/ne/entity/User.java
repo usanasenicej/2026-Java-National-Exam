@@ -5,12 +5,14 @@ import com.wasac.ne.enums.Status;
 import com.wasac.ne.enums.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = {
+        @UniqueConstraint(columnNames = "email"),
+        @UniqueConstraint(columnNames = "national_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,6 +29,13 @@ public class User extends AuditableEntity {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    /**
+     * National ID — required for ROLE_CUSTOMER self-registration.
+     * Nullable for staff (ROLE_OPERATOR, ROLE_FINANCE, ROLE_ADMIN) created by Admin.
+     */
+    @Column(name = "national_id", unique = true, length = 16)
+    private String nationalId;
 
     @Column(nullable = false)
     private String phoneNumber;
@@ -48,6 +57,10 @@ public class User extends AuditableEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean emailVerified = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean mustChangePassword = false;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id")

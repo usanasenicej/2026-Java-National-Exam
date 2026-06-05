@@ -2,7 +2,6 @@ package com.wasac.ne.dto.request;
 
 import com.wasac.ne.enums.Status;
 import com.wasac.ne.enums.UserRole;
-import com.wasac.ne.validation.StrongPassword;
 import com.wasac.ne.validation.ValidEmail;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
@@ -15,7 +14,7 @@ import lombok.Data;
 import java.util.Set;
 
 @Data
-@Schema(description = "Create user — ROLE_ADMIN only")
+@Schema(description = "Create user — ROLE_ADMIN only. Password is optional; a temporary password is auto-generated for staff roles.")
 public class CreateUserRequest {
 
     @NotBlank(message = "Full names are required")
@@ -26,10 +25,10 @@ public class CreateUserRequest {
     private String email;
 
     @NotBlank
-    @Pattern(regexp = "^\\+?250[0-9]{9}$|^0[0-9]{9}$", message = "Phone must be a valid Rwanda number")
+    @Pattern(regexp = "^(\\+?2507[2389]|07[2389])[0-9]{7}$", message = "Phone must be a valid Rwanda number (e.g. +250788123456 or 0788123456)")
     private String phoneNumber;
 
-    @NotBlank @StrongPassword
+    @Schema(description = "Optional. If omitted for Operator/Finance/Admin roles, a temporary password is generated and emailed.")
     private String password;
 
     @NotNull

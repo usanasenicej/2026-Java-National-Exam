@@ -17,4 +17,5 @@ public class AuthResponse {
     private String email;
     private String fullNames;
     private Set<UserRole> roles;
+    private boolean mustChangePassword;
 }

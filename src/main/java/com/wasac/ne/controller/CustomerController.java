@@ -23,29 +23,31 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
-@Tag(name = "Customer Management", description = "Manage utility customers")
+@Tag(name = "Customer Management", description = "Manage utility customers — Admin manages records, Customers self-register via /api/auth/register")
 public class CustomerController {
 
     private final CustomerService customerService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @Operation(summary = "Create customer", description = "Access: ROLE_ADMIN, ROLE_OPERATOR")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create customer record",
+        description = "Access: ROLE_ADMIN only. Creates a customer profile that can then be linked to a user account and assigned meters. " +
+            "Note: Customers self-register via POST /api/auth/register — this endpoint is for admin to create the customer profile manually.")
     public ResponseEntity<ApiResponse<CustomerResponse>> create(@Valid @RequestBody CreateCustomerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Customer created", customerService.create(request)));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'FINANCE', 'CUSTOMER')")
-    @Operation(summary = "Get customer", description = "Access: All authenticated roles")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE', 'CUSTOMER')")
+    @Operation(summary = "Get customer", description = "Access: ROLE_ADMIN, ROLE_FINANCE, ROLE_CUSTOMER")
     public ResponseEntity<ApiResponse<CustomerResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Customer retrieved", customerService.getById(id)));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'FINANCE')")
-    @Operation(summary = "List customers", description = "Access: ROLE_ADMIN, ROLE_OPERATOR, ROLE_FINANCE")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
+    @Operation(summary = "List customers", description = "Access: ROLE_ADMIN, ROLE_FINANCE")
     public ResponseEntity<ApiResponse<PageResponse<CustomerResponse>>> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Status status,
@@ -59,8 +61,8 @@ public class CustomerController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @Operation(summary = "Update customer", description = "Access: ROLE_ADMIN, ROLE_OPERATOR")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update customer", description = "Access: ROLE_ADMIN only")
     public ResponseEntity<ApiResponse<CustomerResponse>> update(@PathVariable Long id,
                                                                 @Valid @RequestBody UpdateCustomerRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Customer updated", customerService.update(id, request)));

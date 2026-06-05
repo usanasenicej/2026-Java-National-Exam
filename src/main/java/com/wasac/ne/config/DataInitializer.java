@@ -31,6 +31,7 @@ public class DataInitializer implements CommandLineRunner {
                     .status(Status.ACTIVE)
                     .roles(Set.of(UserRole.ROLE_ADMIN))
                     .emailVerified(true)
+                    .mustChangePassword(false)
                     .build();
             userRepository.save(admin);
             log.info("Default admin user created: admin@wasac.rw / Admin@123");

@@ -14,6 +14,8 @@ public class AuditLogResponse {
     private Long entityId;
     private String action;
     private String performedBy;
+    private String oldValue;
+    private String newValue;
     private String details;
     private LocalDateTime timestamp;
 }

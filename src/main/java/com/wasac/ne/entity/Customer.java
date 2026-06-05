@@ -5,6 +5,7 @@ import com.wasac.ne.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,11 +28,13 @@ public class Customer extends AuditableEntity {
     @Column(nullable = false, unique = true, length = 16)
     private String nationalId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String phoneNumber;
+
+    private LocalDate dateOfBirth;
 
     @Column(nullable = false)
     private String address;

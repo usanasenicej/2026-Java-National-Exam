@@ -17,7 +17,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 @Service
 @RequiredArgsConstructor
 public class MeterService {
@@ -25,6 +24,7 @@ public class MeterService {
     private final MeterRepository meterRepository;
     private final CustomerService customerService;
     private final AuditService auditService;
+    private final OwnershipService ownershipService;
 
     @Transactional
     public MeterResponse create(CreateMeterRequest request) {
@@ -33,6 +33,12 @@ public class MeterService {
         }
 
         Customer customer = customerService.findCustomer(request.getCustomerId());
+
+        // Validation: meter must only be assigned to active customers
+        if (customer.getStatus() != com.wasac.ne.enums.Status.ACTIVE) {
+            throw new BusinessException("Cannot assign a meter to an inactive/suspended customer: "
+                    + customer.getFullNames());
+        }
 
         Meter meter = Meter.builder()
                 .meterNumber(request.getMeterNumber().trim())
@@ -43,17 +49,29 @@ public class MeterService {
                 .build();
 
         meter = meterRepository.save(meter);
-        auditService.log("Meter", meter.getId(), "CREATE", "Meter installed for customer " + customer.getId());
+        auditService.log("Meter", meter.getId(), "CREATE",
+                null,
+                "meterNumber=" + meter.getMeterNumber() + ",type=" + meter.getMeterType()
+                        + ",customerId=" + customer.getId(),
+                "Meter installed for customer " + customer.getFullNames());
         return EntityMapper.toMeterResponse(meter);
     }
 
     @Transactional(readOnly = true)
     public MeterResponse getById(Long id) {
-        return EntityMapper.toMeterResponse(findMeter(id));
+        Meter meter = findMeter(id);
+        ownershipService.assertOwnership(meter.getCustomer().getId(), "Meter");
+        return EntityMapper.toMeterResponse(meter);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<MeterResponse> getAll(String search, Long customerId, MeterType type, Pageable pageable) {
+        // ROLE_CUSTOMER can only see their own meters
+        Long ownedCustomerId = ownershipService.getOwnedCustomerIdOrNull();
+        if (ownedCustomerId != null) {
+            customerId = ownedCustomerId;
+        }
+
         Page<Meter> page;
         if (customerId != null) {
             page = meterRepository.findByCustomerId(customerId, pageable);
@@ -70,19 +88,32 @@ public class MeterService {
     @Transactional
     public MeterResponse update(Long id, UpdateMeterRequest request) {
         Meter meter = findMeter(id);
+
+        String oldSnapshot = "meterType=" + meter.getMeterType()
+                + ",status=" + meter.getStatus()
+                + ",installationDate=" + meter.getInstallationDate();
+
         if (request.getMeterType() != null) meter.setMeterType(request.getMeterType());
         if (request.getInstallationDate() != null) meter.setInstallationDate(request.getInstallationDate());
         if (request.getStatus() != null) meter.setStatus(request.getStatus());
         meter = meterRepository.save(meter);
-        auditService.log("Meter", meter.getId(), "UPDATE", "Meter updated");
+
+        String newSnapshot = "meterType=" + meter.getMeterType()
+                + ",status=" + meter.getStatus()
+                + ",installationDate=" + meter.getInstallationDate();
+
+        auditService.log("Meter", meter.getId(), "UPDATE",
+                oldSnapshot, newSnapshot, "Meter updated: " + meter.getMeterNumber());
         return EntityMapper.toMeterResponse(meter);
     }
 
     @Transactional
     public void delete(Long id) {
         Meter meter = findMeter(id);
+        auditService.log("Meter", id, "DELETE",
+                "meterNumber=" + meter.getMeterNumber() + ",status=" + meter.getStatus(), null,
+                "Meter deleted: " + meter.getMeterNumber());
         meterRepository.delete(meter);
-        auditService.log("Meter", id, "DELETE", "Meter deleted");
     }
 
     public Meter findMeter(Long id) {

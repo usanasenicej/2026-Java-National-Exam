@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class UpdateCustomerRequest {
 
@@ -15,8 +17,10 @@ public class UpdateCustomerRequest {
     @ValidEmail
     private String email;
 
-    @Pattern(regexp = "^\\+?250[0-9]{9}$|^0[0-9]{9}$")
+    @Pattern(regexp = "^(\\+?2507[2389]|07[2389])[0-9]{7}$", message = "Phone must be a valid Rwanda number (e.g. +250788123456 or 0788123456)")
     private String phoneNumber;
+
+    private LocalDate dateOfBirth;
 
     @Size(min = 5, max = 255)
     private String address;

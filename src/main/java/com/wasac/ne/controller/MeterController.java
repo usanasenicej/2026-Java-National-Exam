@@ -29,8 +29,10 @@ public class MeterController {
     private final MeterService meterService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @Operation(summary = "Create meter", description = "Access: ROLE_ADMIN, ROLE_OPERATOR")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Create and assign meter",
+        description = "Access: ROLE_ADMIN only. Creates a meter and assigns it to a customer by customerId. " +
+            "The customer must already exist (either self-registered or created via POST /api/customers).")
     public ResponseEntity<ApiResponse<MeterResponse>> create(@Valid @RequestBody CreateMeterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Meter created", meterService.create(request)));
@@ -38,14 +40,16 @@ public class MeterController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'FINANCE', 'CUSTOMER')")
-    @Operation(summary = "Get meter", description = "Access: All authenticated roles")
+    @Operation(summary = "Get meter", description = "Access: All roles. ROLE_CUSTOMER only sees their own meters.")
     public ResponseEntity<ApiResponse<MeterResponse>> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ApiResponse.success("Meter retrieved", meterService.getById(id)));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'FINANCE')")
-    @Operation(summary = "List meters", description = "Access: ROLE_ADMIN, ROLE_OPERATOR, ROLE_FINANCE")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'FINANCE', 'CUSTOMER')")
+    @Operation(summary = "List meters",
+        description = "Access: All roles. ROLE_CUSTOMER automatically sees only their own meters. " +
+            "ROLE_ADMIN/FINANCE/OPERATOR can filter by customerId, meterType, or search by meter number.")
     public ResponseEntity<ApiResponse<PageResponse<MeterResponse>>> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Long customerId,
@@ -57,8 +61,8 @@ public class MeterController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
-    @Operation(summary = "Update meter", description = "Access: ROLE_ADMIN, ROLE_OPERATOR")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Update meter", description = "Access: ROLE_ADMIN only. Update meter type, status, or installation date.")
     public ResponseEntity<ApiResponse<MeterResponse>> update(@PathVariable Long id,
                                                              @Valid @RequestBody UpdateMeterRequest request) {
         return ResponseEntity.ok(ApiResponse.success("Meter updated", meterService.update(id, request)));

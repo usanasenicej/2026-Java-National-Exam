@@ -4,6 +4,7 @@ public enum BillStatus {
     PENDING,
     APPROVED,
     PAID,
+    PARTIALLY_PAID,
     OVERDUE,
     REJECTED
 }

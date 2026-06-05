@@ -4,6 +4,7 @@ import com.wasac.ne.enums.Status;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -15,6 +16,7 @@ public class CustomerResponse {
     private String nationalId;
     private String email;
     private String phoneNumber;
+    private LocalDate dateOfBirth;
     private String address;
     private Status status;
     private LocalDateTime createdAt;

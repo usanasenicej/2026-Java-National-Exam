@@ -76,9 +76,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
-        log.error("Unexpected error", ex);
+        // Log the full stack trace so we can see what actually went wrong
+        log.error("Unexpected error on {}: {}", request.getRequestURI(), ex.getMessage(), ex);
+
+        // Unwrap the root cause for a more helpful message
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        String devMessage = cause.getClass().getSimpleName() + ": " + cause.getMessage();
+
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error",
-                "An unexpected error occurred. Please try again later.",
+                "An unexpected error occurred: " + devMessage,
                 request.getRequestURI(), null);
     }
 

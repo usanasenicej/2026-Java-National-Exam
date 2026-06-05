@@ -30,7 +30,7 @@ public class UserController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create user", description = "Access: ROLE_ADMIN")
+    @Operation(summary = "Create user", description = "Access: ROLE_ADMIN. Auto-generates temporary password and emails credentials for Operator/Finance/Admin roles.")
     public ResponseEntity<ApiResponse<UserResponse>> create(@Valid @RequestBody CreateUserRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("User created", userService.create(request)));
@@ -60,7 +60,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update user", description = "Access: ROLE_ADMIN")
+    @Operation(summary = "Update user", description = "Access: ROLE_ADMIN. Sends email notification when roles are changed.")
     public ResponseEntity<ApiResponse<UserResponse>> update(@PathVariable Long id,
                                                             @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(ApiResponse.success("User updated", userService.update(id, request)));
