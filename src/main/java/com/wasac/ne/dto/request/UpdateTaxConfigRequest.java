@@ -21,6 +21,9 @@ public class UpdateTaxConfigRequest {
     @DecimalMax(value = "100.0", message = "Percentage cannot exceed 100")
     private BigDecimal percentage;
 
+    /** Allow correcting effectiveFrom on existing configs — no past-date restriction on updates */
+    private LocalDate effectiveFrom;
+
     private LocalDate effectiveTo;
 
     private Status status;

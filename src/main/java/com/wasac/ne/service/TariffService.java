@@ -55,6 +55,12 @@ public class TariffService {
                 .version(nextVersion)
                 .effectiveFrom(request.getEffectiveFrom())
                 .flatRate(request.getFlatRate())
+                .serviceChargeAmount(request.getServiceChargeAmount() != null
+                        ? request.getServiceChargeAmount() : BigDecimal.ZERO)
+                .vatPercentage(request.getVatPercentage() != null
+                        ? request.getVatPercentage() : BigDecimal.ZERO)
+                .latePenaltyPercentage(request.getLatePenaltyPercentage() != null
+                        ? request.getLatePenaltyPercentage() : BigDecimal.ZERO)
                 .status(request.getStatus())
                 .tiers(new ArrayList<>())
                 .build();
@@ -114,6 +120,22 @@ public class TariffService {
         if (request.getEffectiveTo() != null) tariff.setEffectiveTo(request.getEffectiveTo());
         // Allow updating effectiveFrom — no past-date restriction on updates, only on new versions
         if (request.getEffectiveFrom() != null) tariff.setEffectiveFrom(request.getEffectiveFrom());
+        if (request.getServiceChargeAmount() != null) {
+            if (request.getServiceChargeAmount().compareTo(BigDecimal.ZERO) < 0)
+                throw new BusinessException("Service charge amount cannot be negative");
+            tariff.setServiceChargeAmount(request.getServiceChargeAmount());
+        }
+        if (request.getVatPercentage() != null) {
+            if (request.getVatPercentage().compareTo(BigDecimal.ZERO) < 0
+                    || request.getVatPercentage().compareTo(BigDecimal.valueOf(100)) > 0)
+                throw new BusinessException("VAT percentage must be between 0 and 100");
+            tariff.setVatPercentage(request.getVatPercentage());
+        }
+        if (request.getLatePenaltyPercentage() != null) {
+            if (request.getLatePenaltyPercentage().compareTo(BigDecimal.ZERO) < 0)
+                throw new BusinessException("Late penalty percentage cannot be negative");
+            tariff.setLatePenaltyPercentage(request.getLatePenaltyPercentage());
+        }
 
         // Update flat rate (FLAT tariffs only)
         if (request.getFlatRate() != null) {

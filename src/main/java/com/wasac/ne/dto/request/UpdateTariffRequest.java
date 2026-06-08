@@ -33,6 +33,19 @@ public class UpdateTariffRequest {
     @DecimalMin(value = "0.01", message = "Flat rate must be greater than zero")
     private BigDecimal flatRate;
 
+    /** Optional: update service charge amount. */
+    @DecimalMin(value = "0.0", message = "Service charge cannot be negative")
+    private BigDecimal serviceChargeAmount;
+
+    /** Optional: update VAT percentage. Range 0-100. */
+    @DecimalMin(value = "0.0", message = "VAT percentage cannot be negative")
+    @jakarta.validation.constraints.DecimalMax(value = "100.0", message = "VAT percentage cannot exceed 100")
+    private BigDecimal vatPercentage;
+
+    /** Optional: update late penalty percentage. */
+    @DecimalMin(value = "0.0", message = "Late penalty percentage cannot be negative")
+    private BigDecimal latePenaltyPercentage;
+
     /** Optional: replace tier definitions (only valid for TIERED tariffs). */
     @Valid
     private List<TariffTierRequest> tiers;

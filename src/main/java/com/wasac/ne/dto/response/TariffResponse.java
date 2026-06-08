@@ -23,6 +23,9 @@ public class TariffResponse {
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private BigDecimal flatRate;
+    private BigDecimal serviceChargeAmount;
+    private BigDecimal vatPercentage;
+    private BigDecimal latePenaltyPercentage;
     private Status status;
     private List<TariffTierResponse> tiers;
     private LocalDateTime createdAt;

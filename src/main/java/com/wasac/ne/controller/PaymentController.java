@@ -27,8 +27,14 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE')")
-    @Operation(summary = "Record payment", description = "Access: ROLE_ADMIN, ROLE_FINANCE. Supports partial and full payments.")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FINANCE', 'CUSTOMER')")
+    @Operation(
+        summary = "Record payment",
+        description = "Access: ROLE_ADMIN, ROLE_FINANCE, ROLE_CUSTOMER. " +
+            "Customers can pay their own bills directly. " +
+            "Supports partial and full payments. " +
+            "On full payment, a confirmation email is automatically sent to the customer."
+    )
     public ResponseEntity<ApiResponse<PaymentResponse>> create(@Valid @RequestBody CreatePaymentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Payment recorded", paymentService.recordPayment(request)));

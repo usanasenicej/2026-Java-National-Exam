@@ -26,23 +26,23 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BillService {
 
-    // Meter disconnection grace: bills overdue for more than this many days trigger disconnection
     private static final int DISCONNECTION_THRESHOLD_DAYS = 90;
 
     private final BillRepository billRepository;
     private final MeterReadingService meterReadingService;
     private final CustomerService customerService;
     private final TariffService tariffService;
-    private final ConfigService configService;
     private final NotificationService notificationService;
     private final MeterRepository meterRepository;
     private final AuditService auditService;
     private final OwnershipService ownershipService;
+    private final EmailService emailService;
 
     // ─────────────────────────────────────────────────────────────────────
     // Bill Generation
@@ -79,12 +79,10 @@ public class BillService {
         LocalDate billingDate = reading.getReadingDate();
         MeterType meterType  = meter.getMeterType();
 
-        // 5. Resolve active configurations
-        Tariff tariff             = tariffService.findActiveTariff(meterType, billingDate);
-        ServiceCharge serviceCharge = configService.findActiveServiceCharge(meterType, billingDate);
-        TaxConfig tax             = configService.findActiveTax(billingDate);
+        // 5. Resolve active tariff — it now carries serviceCharge, VAT, and penalty
+        Tariff tariff = tariffService.findActiveTariff(meterType, billingDate);
 
-        // 6. Calculate amounts
+        // 6. Calculate amounts — all config comes from the tariff
         BigDecimal consumptionAmount = tariffService
                 .calculateConsumptionCost(tariff, reading.getConsumption())
                 .setScale(2, RoundingMode.HALF_UP);
@@ -93,10 +91,10 @@ public class BillService {
             throw new BusinessException("Calculated consumption amount must not be negative");
         }
 
-        BigDecimal serviceChargeAmount = serviceCharge.getAmount();
+        BigDecimal serviceChargeAmount = tariff.getServiceChargeAmount();
         BigDecimal subtotal            = consumptionAmount.add(serviceChargeAmount);
         BigDecimal taxAmount           = subtotal
-                .multiply(tax.getPercentage())
+                .multiply(tariff.getVatPercentage())
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalAmount         = subtotal.add(taxAmount);
 
@@ -166,6 +164,30 @@ public class BillService {
         auditService.log("Bill", bill.getId(), "APPROVE",
                 "status=" + oldStatus, "status=APPROVED,approvedBy=" + bill.getApprovedBy(),
                 "Bill approved: " + bill.getBillReference());
+
+        // Send invoice email to customer
+        try {
+            Customer customer = bill.getCustomer();
+            Meter meter = bill.getMeterReading().getMeter();
+            String billingPeriod = getMonthName(bill.getBillingMonth()) + " " + bill.getBillingYear();
+            String consumption = bill.getMeterReading().getConsumption().toPlainString();
+            emailService.sendBillInvoiceEmail(
+                    customer.getEmail(),
+                    customer.getFullNames(),
+                    bill.getBillReference(),
+                    billingPeriod,
+                    meter.getMeterNumber(),
+                    consumption,
+                    bill.getConsumptionAmount().toPlainString(),
+                    bill.getServiceChargeAmount().toPlainString(),
+                    bill.getTaxAmount().toPlainString(),
+                    bill.getTotalAmount().toPlainString(),
+                    bill.getDueDate().toString()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to send bill invoice email for bill {}: {}", bill.getBillReference(), e.getMessage());
+        }
+
         return EntityMapper.toBillResponse(bill);
     }
 
@@ -205,9 +227,21 @@ public class BillService {
         List<Bill> approvedOverdue = billRepository.findOverdueBills(BillStatus.APPROVED, today);
         for (Bill bill : approvedOverdue) {
             try {
-                PenaltyConfig penalty = configService.findActivePenalty(today);
+                // Get penalty % from the tariff that was used when this bill was generated
+                BigDecimal penaltyPct = BigDecimal.ZERO;
+                if (bill.getMeterReading() != null) {
+                    try {
+                        Tariff tariff = tariffService.findActiveTariff(
+                                bill.getMeterReading().getMeter().getMeterType(),
+                                bill.getMeterReading().getReadingDate());
+                        penaltyPct = tariff.getLatePenaltyPercentage();
+                    } catch (Exception ignored) {
+                        // If no tariff found, use 0% penalty — don't crash the batch
+                    }
+                }
+
                 BigDecimal penaltyAmount = bill.getOutstandingBalance()
-                        .multiply(penalty.getPercentage())
+                        .multiply(penaltyPct)
                         .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
                 String oldSnapshot = "status=APPROVED,outstanding=" + bill.getOutstandingBalance();

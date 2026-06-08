@@ -151,7 +151,49 @@ public class EmailService {
     }
 
     // =========================================================================
-    // 5. BILL PAYMENT CONFIRMATION
+    // 5. BILL INVOICE — sent to customer when bill is approved
+    // =========================================================================
+
+    public void sendBillInvoiceEmail(String to, String name, String billReference,
+                                     String billingPeriod, String meterNumber,
+                                     String consumption,
+                                     String consumptionAmount, String serviceCharge,
+                                     String tax, String totalAmount, String dueDate) {
+        String content = row("Your Bill Invoice") +
+            "<p class='body-text'>Dear <strong>" + esc(name) + "</strong>,</p>" +
+            "<p class='body-text'>Your utility bill for <strong>" + esc(billingPeriod) + "</strong> has been approved " +
+            "and is now ready for payment. Please find your invoice details below.</p>" +
+            "<table class='cred-table'>" +
+            "  <tr><td class='cred-label'>Bill Reference</td>" +
+            "      <td class='cred-value cred-highlight'>" + esc(billReference) + "</td></tr>" +
+            "  <tr><td class='cred-label'>Billing Period</td>" +
+            "      <td class='cred-value'>" + esc(billingPeriod) + "</td></tr>" +
+            "  <tr><td class='cred-label'>Meter Number</td>" +
+            "      <td class='cred-value'>" + esc(meterNumber) + "</td></tr>" +
+            "  <tr><td class='cred-label'>Consumption</td>" +
+            "      <td class='cred-value'>" + esc(consumption) + " m³</td></tr>" +
+            "  <tr><td class='cred-label'>Consumption Charge</td>" +
+            "      <td class='cred-value'>" + esc(consumptionAmount) + " FRW</td></tr>" +
+            "  <tr><td class='cred-label'>Service Charge</td>" +
+            "      <td class='cred-value'>" + esc(serviceCharge) + " FRW</td></tr>" +
+            "  <tr><td class='cred-label'>Tax (VAT)</td>" +
+            "      <td class='cred-value'>" + esc(tax) + " FRW</td></tr>" +
+            "  <tr><td class='cred-label'>Total Amount Due</td>" +
+            "      <td class='cred-value cred-password'>" + esc(totalAmount) + " FRW</td></tr>" +
+            "  <tr><td class='cred-label'>Due Date</td>" +
+            "      <td class='cred-value'>" + esc(dueDate) + "</td></tr>" +
+            "</table>" +
+            "<div class='warning-box'>" +
+            "  Please pay your bill before <strong>" + esc(dueDate) + "</strong> to avoid late payment penalties." +
+            "</div>" +
+            "<p class='body-text'>To pay or view your bill, log in to your WASAC account.</p>" +
+            "<p class='hint'>If you have any questions about this bill, please contact your nearest WASAC office.</p>";
+
+        send(to, "WASAC Bill Invoice — " + billReference, template("Bill Invoice", content));
+    }
+
+    // =========================================================================
+    // 6. BILL PAYMENT CONFIRMATION
     // =========================================================================
 
     public void sendBillNotificationEmail(String to, String name, String message) {

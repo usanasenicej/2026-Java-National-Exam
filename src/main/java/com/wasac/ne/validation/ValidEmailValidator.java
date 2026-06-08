@@ -62,6 +62,9 @@ public class ValidEmailValidator implements ConstraintValidator<ValidEmail, Stri
     }
 
     private void setMessage(ConstraintValidatorContext context, String message) {
+        if (context == null) {
+            return;
+        }
         context.disableDefaultConstraintViolation();
         context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
     }

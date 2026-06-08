@@ -19,6 +19,9 @@ public class UpdateServiceChargeRequest {
     @DecimalMin(value = "0.0", message = "Amount cannot be negative")
     private BigDecimal amount;
 
+    /** Allow correcting effectiveFrom on existing configs — no past-date restriction on updates */
+    private LocalDate effectiveFrom;
+
     private LocalDate effectiveTo;
 
     private Status status;

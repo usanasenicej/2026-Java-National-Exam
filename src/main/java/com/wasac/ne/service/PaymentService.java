@@ -74,28 +74,61 @@ public class PaymentService {
 
         if (newBalance.compareTo(BigDecimal.ZERO) == 0) {
             bill.setStatus(BillStatus.PAID);
-            // Email notification
+            // Full payment confirmation email
             String emailMsg = String.format(
-                    "Dear %s,\nYour %d/%d utility bill of %s FRW has been successfully processed.",
-                    bill.getCustomer().getFullNames(), bill.getBillingMonth(), bill.getBillingYear(),
-                    bill.getTotalAmount());
-            emailService.sendBillNotificationEmail(bill.getCustomer().getEmail(),
-                    bill.getCustomer().getFullNames(), emailMsg);
+                    "Dear %s,\n\nYour payment of %s FRW has been successfully received.\n\n" +
+                    "Bill Reference: %s\n" +
+                    "Billing Period: %s/%d\n" +
+                    "Total Bill Amount: %s FRW\n" +
+                    "Amount Paid: %s FRW\n" +
+                    "Outstanding Balance: 0.00 FRW\n\n" +
+                    "Your bill is now FULLY PAID. Thank you for your payment.",
+                    bill.getCustomer().getFullNames(),
+                    request.getAmountPaid(),
+                    bill.getBillReference(),
+                    getMonthName(bill.getBillingMonth()), bill.getBillingYear(),
+                    bill.getTotalAmount(),
+                    newAmountPaid);
+            emailService.sendBillNotificationEmail(
+                    bill.getCustomer().getEmail(),
+                    bill.getCustomer().getFullNames(),
+                    emailMsg);
             // In-app notification
-            notificationService.createNotification(bill.getCustomer(), emailMsg,
+            notificationService.createNotification(bill.getCustomer(),
+                    String.format("Your bill %s has been fully paid. Total paid: %s FRW. Thank you!",
+                            bill.getBillReference(), newAmountPaid),
                     NotificationType.PAYMENT_RECEIVED, bill.getId());
         } else if (newBalance.compareTo(BigDecimal.ZERO) > 0) {
-            // Partial payment — update status to PARTIALLY_PAID if not already
+            // Partial payment
             if (bill.getStatus() == BillStatus.APPROVED || bill.getStatus() == BillStatus.OVERDUE) {
                 bill.setStatus(BillStatus.PARTIALLY_PAID);
             }
-            // In-app notification for partial payment
-            String partialMsg = String.format(
-                    "Dear %s, a partial payment of %s FRW has been recorded for bill %s. " +
-                    "Remaining balance: %s FRW.",
-                    bill.getCustomer().getFullNames(), request.getAmountPaid(),
-                    bill.getBillReference(), newBalance);
-            notificationService.createNotification(bill.getCustomer(), partialMsg,
+            // Partial payment confirmation email
+            String partialEmailMsg = String.format(
+                    "Dear %s,\n\nYour partial payment of %s FRW has been successfully received.\n\n" +
+                    "Bill Reference: %s\n" +
+                    "Billing Period: %s/%d\n" +
+                    "Total Bill Amount: %s FRW\n" +
+                    "Amount Paid This Time: %s FRW\n" +
+                    "Total Paid So Far: %s FRW\n" +
+                    "Remaining Balance: %s FRW\n\n" +
+                    "Please pay the remaining balance before the due date to avoid penalties.",
+                    bill.getCustomer().getFullNames(),
+                    request.getAmountPaid(),
+                    bill.getBillReference(),
+                    getMonthName(bill.getBillingMonth()), bill.getBillingYear(),
+                    bill.getTotalAmount(),
+                    request.getAmountPaid(),
+                    newAmountPaid,
+                    newBalance);
+            emailService.sendBillNotificationEmail(
+                    bill.getCustomer().getEmail(),
+                    bill.getCustomer().getFullNames(),
+                    partialEmailMsg);
+            // In-app notification
+            notificationService.createNotification(bill.getCustomer(),
+                    String.format("Partial payment of %s FRW received for bill %s. Remaining balance: %s FRW.",
+                            request.getAmountPaid(), bill.getBillReference(), newBalance),
                     NotificationType.PAYMENT_RECEIVED, bill.getId());
         }
 
@@ -169,5 +202,15 @@ public class PaymentService {
     private Payment findPayment(Long id) {
         return paymentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with id: " + id));
+    }
+
+    private static String getMonthName(int month) {
+        return switch (month) {
+            case 1  -> "January";   case 2  -> "February"; case 3  -> "March";
+            case 4  -> "April";     case 5  -> "May";       case 6  -> "June";
+            case 7  -> "July";      case 8  -> "August";    case 9  -> "September";
+            case 10 -> "October";   case 11 -> "November";  case 12 -> "December";
+            default -> "Month " + month;
+        };
     }
 }

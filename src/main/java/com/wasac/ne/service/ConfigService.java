@@ -176,6 +176,7 @@ public class ConfigService {
             }
             charge.setAmount(request.getAmount());
         }
+        if (request.getEffectiveFrom() != null) charge.setEffectiveFrom(request.getEffectiveFrom());
         if (request.getEffectiveTo() != null) charge.setEffectiveTo(request.getEffectiveTo());
         if (request.getStatus() != null) charge.setStatus(request.getStatus());
 
@@ -203,6 +204,7 @@ public class ConfigService {
             }
             tax.setPercentage(request.getPercentage());
         }
+        if (request.getEffectiveFrom() != null) tax.setEffectiveFrom(request.getEffectiveFrom());
         if (request.getEffectiveTo() != null) tax.setEffectiveTo(request.getEffectiveTo());
         if (request.getStatus() != null) tax.setStatus(request.getStatus());
 
